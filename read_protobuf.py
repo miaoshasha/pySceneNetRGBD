@@ -77,4 +77,3 @@ if __name__ == '__main__':
             print(depth_path_from_view(traj.render_path,view))
             print(instance_path_from_view(traj.render_path,view))
             print(view)
-        break
