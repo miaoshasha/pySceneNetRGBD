@@ -2,6 +2,7 @@ from PIL import Image
 import numpy as np
 import os
 import random
+from subprocess import call
 import scenenet_pb2 as sn
 import argparse
 
@@ -133,6 +134,7 @@ if __name__ == '__main__':
             instance_class_map[instance.instance_id] = NYU_WNID_TO_CLASS[instance.semantic_wordnet_id]
 
     for traj in trajectories.trajectories:
+        call(['mkdir', '-p', os.path.join(args.image_path, traj.render_path, 'segmentation')])
         for view in traj.views:
             # get path of instance image
             instance_path, class_path = instance_path_from_view(args.image_path, traj.render_path, view)
