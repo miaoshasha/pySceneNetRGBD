@@ -2,9 +2,20 @@ from PIL import Image
 import numpy as np
 import os
 import random
+from subprocess import call
 import scenenet_pb2 as sn
-# converts instance images to color coded images in different classes
+import argparse
+
+# converts from instances to classes, output single channel images with class labeling
+
+# takes one folder e.g. /home/yisha/datasets/scenenet/train/2/
+# under 2/, enumerate through all subfolders, which contain : photos, instances, depth
+# create new folder segmentation
+
+# it also reads from the corresponding protobuf file, the path of which should be provided
+
 # classes in NYU13
+
 NYU_13_CLASSES = [(0,'Unknown'),
                   (1,'Bed'),
                   (2,'Books'),
@@ -19,22 +30,22 @@ NYU_13_CLASSES = [(0,'Unknown'),
                   (11,'TV'),
                   (12,'Wall'),
                   (13,'Window')
-]
+                  ]
 
 colour_code = np.array([[0, 0, 0],
-                       [0, 0, 1],
-                       [0.9137,0.3490,0.1882], #BOOKS
-                       [0, 0.8549, 0], #CEILING
-                       [0.5843,0,0.9412], #CHAIR
-                       [0.8706,0.9451,0.0941], #FLOOR
-                       [1.0000,0.8078,0.8078], #FURNITURE
-                       [0,0.8784,0.8980], #OBJECTS
-                       [0.4157,0.5333,0.8000], #PAINTING
-                       [0.4588,0.1137,0.1608], #SOFA
-                       [0.9412,0.1373,0.9216], #TABLE
-                       [0,0.6549,0.6118], #TV
-                       [0.9765,0.5451,0], #WALL
-                       [0.8824,0.8980,0.7608]])
+                        [0, 0, 1],
+                        [0.9137,0.3490,0.1882], #BOOKS
+                        [0, 0.8549, 0], #CEILING
+                        [0.5843,0,0.9412], #CHAIR
+                        [0.8706,0.9451,0.0941], #FLOOR
+                        [1.0000,0.8078,0.8078], #FURNITURE
+                        [0,0.8784,0.8980], #OBJECTS
+                        [0.4157,0.5333,0.8000], #PAINTING
+                        [0.4588,0.1137,0.1608], #SOFA
+                        [0.9412,0.1373,0.9216], #TABLE
+                        [0,0.6549,0.6118], #TV
+                        [0.9765,0.5451,0], #WALL
+                        [0.8824,0.8980,0.7608]])
 
 NYU_WNID_TO_CLASS = {
     '04593077':4, '03262932':4, '02933112':6, '03207941':7, '03063968':10, '04398044':7, '04515003':7,
@@ -76,48 +87,51 @@ NYU_WNID_TO_CLASS = {
     '02992529':7, '03222722':12, '04373704':4, '02851099':13, '04061681':10, '04529681':7,
 }
 
-data_root_path = 'data/val'
-protobuf_path = 'data/scenenet_rgbd_val.pb'
 
-def instance_path_from_view(render_path,view):
-    photo_path = os.path.join(render_path,'instance')
-    image_path = os.path.join(photo_path,'{0}.png'.format(view.frame_num))
-    return os.path.join(data_root_path,image_path)
+def get_paths(instance, rootpath):
+    image_num = instance.split('.')[0]
+    color_image = image_num+'.png'
+    return os.path.join(rootpath, instance), os.path.join(rootpath, color_image)
 
-def save_class_from_instance(instance_path,class_path, class_NYUv2_colourcode_path, mapping):
+def save_class_color_from_instance(instance_path,class_path, mapping):
     instance_img = np.asarray(Image.open(instance_path))
-    class_img = np.zeros(instance_img.shape)
-    h,w  = instance_img.shape
+    h, w = instance_img.shape
 
-    class_img_rgb = np.zeros((h,w,3),dtype=np.uint8)
-    r = class_img_rgb[:,:,0]
-    g = class_img_rgb[:,:,1]
-    b = class_img_rgb[:,:,2]
+    class_img_rgb = np.zeros((h, w, 3), dtype=np.uint8)
+    r = class_img_rgb[:, :, 0]
+    g = class_img_rgb[:, :, 1]
+    b = class_img_rgb[:, :, 2]
 
     for instance, semantic_class in mapping.items():
-        class_img[instance_img == instance] = semantic_class
-        r[instance_img==instance] = np.uint8(colour_code[semantic_class][0]*255)
-        g[instance_img==instance] = np.uint8(colour_code[semantic_class][1]*255)
-        b[instance_img==instance] = np.uint8(colour_code[semantic_class][2]*255)
+        r[instance_img == instance] = np.uint8(colour_code[semantic_class][0] * 255)
+        g[instance_img == instance] = np.uint8(colour_code[semantic_class][1] * 255)
+        b[instance_img == instance] = np.uint8(colour_code[semantic_class][2] * 255)
 
-    class_img_rgb[:,:,0] = r
-    class_img_rgb[:,:,1] = g
-    class_img_rgb[:,:,2] = b
+    class_img_rgb[:, :, 0] = r
+    class_img_rgb[:, :, 1] = g
+    class_img_rgb[:, :, 2] = b
 
-    class_img = Image.fromarray(np.uint8(class_img))
     class_img_rgb = Image.fromarray(class_img_rgb)
-    class_img.save(class_path)
-    class_img_rgb.save(class_NYUv2_colourcode_path)
+    class_img_rgb.save(class_path)
+
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--image_path', type=str, default=None,
+                        help='path to the image folders of trajectories')
+    parser.add_argument('--protobuf_path', type=str, default='/Users/yishasun/Documents/pySceneNetRGBD/scenenet_rgbd_val.pb',
+                        help='path to the coresponding protobuf file')
+    args = parser.parse_args()
+
     trajectories = sn.Trajectories()
     try:
-        with open(protobuf_path,'rb') as f:
+        with open(args.protobuf_path,'rb') as f:
             trajectories.ParseFromString(f.read())
     except IOError:
-        print('Scenenet protobuf data not found at location:{0}'.format(data_root_path))
+        print('Scenenet protobuf data not found at location:{0}'.format(args.protobuf_path))
         print('Please ensure you have copied the pb file to the data directory')
 
+    # create class map
     traj = random.choice(trajectories.trajectories)
     instance_class_map = {}
     for instance in traj.instances:
@@ -127,12 +141,12 @@ if __name__ == '__main__':
         if instance.instance_type != sn.Instance.BACKGROUND:
             instance_class_map[instance.instance_id] = NYU_WNID_TO_CLASS[instance.semantic_wordnet_id]
 
-    for view in traj.views:
+    images = [f for f in os.listdir(args.image_path) if not f.startswith('.')]
+    print('images found are: ', images)
 
-        instance_path = instance_path_from_view(traj.render_path,view)
-        print('Converting instance image:{0} to class image'.format(instance_path))
+    for img in images:
+        call(['mkdir', '-p', os.path.join(args.image_path,'colorcoded')])
+        instance_path, color_path = get_paths(args.image_path, img)
+        # map and save
+        save_class_color_from_instance(instance_path, color_path,instance_class_map)
 
-        save_class_from_instance(instance_path,'semantic_class.png','NYUv2.png',instance_class_map)
-        print('Breaking early and writing class to semantic_class.png')
-
-        break
