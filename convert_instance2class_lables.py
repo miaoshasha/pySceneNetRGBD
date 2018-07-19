@@ -138,7 +138,7 @@ if __name__ == '__main__':
         for view in traj.views:
             # get path of instance image
             instance_path, class_path = instance_path_from_view(args.image_path, traj.render_path, view)
-            print('Converting instance image:{0} to class image'.format(instance_path))
+            #print('Converting instance image:{0} to class image'.format(instance_path))
             # map and save
             save_class_from_instance(instance_path,class_path,instance_class_map)
 
