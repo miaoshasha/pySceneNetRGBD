@@ -88,13 +88,14 @@ NYU_WNID_TO_CLASS = {
 }
 
 
-def get_paths(instance, rootpath):
+def get_paths(rootpath, instance):
     image_num = instance.split('.')[0]
     color_image = image_num+'.png'
-    return os.path.join(rootpath, instance), os.path.join(rootpath, color_image)
+    return os.path.join(rootpath, instance), os.path.join(rootpath, 'colorcoded', color_image)
 
 def save_class_color_from_instance(instance_path,class_path, mapping):
     instance_img = np.asarray(Image.open(instance_path))
+    print(instance_img.shape)
     h, w = instance_img.shape
 
     class_img_rgb = np.zeros((h, w, 3), dtype=np.uint8)
@@ -140,13 +141,14 @@ if __name__ == '__main__':
 
         if instance.instance_type != sn.Instance.BACKGROUND:
             instance_class_map[instance.instance_id] = NYU_WNID_TO_CLASS[instance.semantic_wordnet_id]
+            print(instance.instance_id, NYU_WNID_TO_CLASS[instance.semantic_wordnet_id])
 
     images = [f for f in os.listdir(args.image_path) if not f.startswith('.')]
-    print('images found are: ', images)
-
+    images = [f for f in images if not os.path.isdir(f)]
     for img in images:
         call(['mkdir', '-p', os.path.join(args.image_path,'colorcoded')])
         instance_path, color_path = get_paths(args.image_path, img)
+        print(instance_path, color_path)
         # map and save
         save_class_color_from_instance(instance_path, color_path,instance_class_map)
 
