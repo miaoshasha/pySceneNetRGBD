@@ -132,10 +132,15 @@ if __name__ == '__main__':
 
         if instance.instance_type != sn.Instance.BACKGROUND:
             instance_class_map[instance.instance_id] = NYU_WNID_TO_CLASS[instance.semantic_wordnet_id]
-
+    i_traj = 0
     for traj in trajectories.trajectories:
         call(['mkdir', '-p', os.path.join(args.image_path, traj.render_path, 'segmentation')])
+        if i_traj == 2:
+            exit()
+        j_view = 0
         for view in traj.views:
+            if j_view == 3:
+                exit()
             # get path of instance image
             instance_path, class_path = instance_path_from_view(args.image_path, traj.render_path, view)
             #print('Converting instance image:{0} to class image'.format(instance_path))
