@@ -91,33 +91,20 @@ NYU_WNID_TO_CLASS = {
 
 def instance_path_from_view(root_path, render_path,view):
     photo_path = os.path.join(render_path,'instance')
+    seg_path = os.path.join(render_path,'segmentation')
     image_path = os.path.join(photo_path,'{0}.png'.format(view.frame_num))
-    return os.path.join(root_path,image_path)
+    segmentation_path = os.path.join(seg_path,'{0}.png'.format(view.frame_num))
+    return os.path.join(root_path,image_path), os.path.join(root_path,segmentation_path)
 
-def save_class_from_instance(instance_path,class_path, class_NYUv2_colourcode_path, mapping):
+def save_class_from_instance(instance_path,class_path, mapping):
     instance_img = np.asarray(Image.open(instance_path))
     class_img = np.zeros(instance_img.shape)
-    h,w  = instance_img.shape
-
-    class_img_rgb = np.zeros((h,w,3),dtype=np.uint8)
-    r = class_img_rgb[:,:,0]
-    g = class_img_rgb[:,:,1]
-    b = class_img_rgb[:,:,2]
 
     for instance, semantic_class in mapping.items():
-        class_img[instance_img == instance] = semantic_class
-        r[instance_img==instance] = np.uint8(colour_code[semantic_class][0]*255)
-        g[instance_img==instance] = np.uint8(colour_code[semantic_class][1]*255)
-        b[instance_img==instance] = np.uint8(colour_code[semantic_class][2]*255)
-
-    class_img_rgb[:,:,0] = r
-    class_img_rgb[:,:,1] = g
-    class_img_rgb[:,:,2] = b
+        class_img[instance_img == instance] = np.uint8(semantic_class)
 
     class_img = Image.fromarray(np.uint8(class_img))
-    class_img_rgb = Image.fromarray(class_img_rgb)
     class_img.save(class_path)
-    class_img_rgb.save(class_NYUv2_colourcode_path)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -147,11 +134,9 @@ if __name__ == '__main__':
 
     for traj in trajectories.trajectories:
         for view in traj.views:
-
-            instance_path = instance_path_from_view(args.image_path, traj.render_path, view)
-            print(instance_path)
+            # get path of instance image
+            instance_path, class_path = instance_path_from_view(args.image_path, traj.render_path, view)
             print('Converting instance image:{0} to class image'.format(instance_path))
-
-            save_class_from_instance(instance_path,'semantic_class.png','NYUv2.png',instance_class_map)
-            print('Breaking early and writing class to semantic_class.png')
+            # map and save
+            save_class_from_instance(instance_path,class_path,instance_class_map)
 
