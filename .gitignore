@@ -88,3 +88,9 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# scenenet segmentation code and other
+data/
+protoread.txt
+sample/
+
