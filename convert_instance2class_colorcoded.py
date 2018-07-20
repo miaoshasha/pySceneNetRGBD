@@ -104,6 +104,8 @@ def save_class_color_from_instance(instance_path,class_path, mapping):
     b = class_img_rgb[:, :, 2]
 
     for instance, semantic_class in mapping.items():
+        if instance_img == instance:
+            print(instance, colour_code[semantic_class])
         r[instance_img == instance] = np.uint8(colour_code[semantic_class][0] * 255)
         g[instance_img == instance] = np.uint8(colour_code[semantic_class][1] * 255)
         b[instance_img == instance] = np.uint8(colour_code[semantic_class][2] * 255)
@@ -141,7 +143,6 @@ if __name__ == '__main__':
 
         if instance.instance_type != sn.Instance.BACKGROUND:
             instance_class_map[instance.instance_id] = NYU_WNID_TO_CLASS[instance.semantic_wordnet_id]
-            print(instance.instance_id, NYU_WNID_TO_CLASS[instance.semantic_wordnet_id])
 
     images = [f for f in os.listdir(args.image_path) if not f.startswith('.')]
     images = [f for f in images if not os.path.isdir(f)]
